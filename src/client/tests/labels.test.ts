@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLabels } from "./labels";
+import { parseLabels } from "../labels";
 
 describe("parseLabels", () => {
   it("keeps values containing equals signs and trims surrounding whitespace", () => {

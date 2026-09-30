@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePort } from "./port";
+import { parsePort } from "../port";
 
 describe("parsePort", () => {
   it.each(["", "   "])("requires an explicit choice for %j", (value) => {

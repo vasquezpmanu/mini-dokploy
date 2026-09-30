@@ -4,7 +4,7 @@ import {
   createServiceArgs,
   readServiceReplicas,
   updateServiceArgs,
-} from "./docker-commands";
+} from "../docker-commands";
 
 describe("Docker command construction", () => {
   it("loads a BuildKit image into the local engine so a single-node Swarm can use it", () => {

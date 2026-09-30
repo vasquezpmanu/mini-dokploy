@@ -2,29 +2,54 @@
 
 Mini-Dokploy builds a public Git repository from a Dockerfile, runs the image as a Docker Swarm service, and makes it available through Traefik at a local `sslip.io` subdomain. It includes email and password accounts, per-user deployment ownership, redeploy and removal actions, and live build logs over WebSockets.
 
-## Run locally
+## Prerequisites
 
-Prerequisites: macOS with Docker Desktop installed, internet access for images and public Git repositories, and free ports 80 and 3000. The startup script uses `docker`, `open`, `openssl`, and `curl`. No VPS, DNS record, hosts-file edit, or Compose stack is needed.
+- **Required for `up.sh`:** macOS, [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/) (including its `docker` CLI), internet access to download images and clone public Git repositories, and free ports **80** and **3000** on the first run. The script also uses macOS `open`, [`curl`](https://curl.se/download.html), and [`openssl`](https://www.openssl-library.org/source/). It checks for these commands before changing Docker resources and prints installation guidance if one is missing.
+- **Only for development and tests on the host:** [Node.js](https://nodejs.org/en/download) with npm; Node.js 22 matches the project's Docker image and CI. You do **not** need host Node.js or `npm install` to use `up.sh`: the container image installs its own dependencies.
+
+No VPS, DNS record, hosts-file edit, or Docker Compose stack is needed. `up.sh` does not install software automatically; install a missing prerequisite from its official link, then run the command again.
+
+## Start with one command
+
+From the repository root, run:
 
 ```sh
 sh scripts/up.sh
 ```
 
-The script starts Docker Desktop if needed, initializes a single-node Swarm if needed, creates the network, volume, and auth secret, then creates or updates the Traefik and Mini-Dokploy services. It waits for the UI at [http://localhost:3000](http://localhost:3000). Running the same command again rebuilds and updates Mini-Dokploy without deleting the SQLite volume. It refuses non-`desktop-linux` Docker contexts to avoid modifying a remote engine.
+On its first run, the script checks prerequisites, confirms the local `desktop-linux` Docker context, starts Docker Desktop if needed, and waits for its engine. It then initializes a single-node Swarm if needed, creates the shared network, persistent SQLite/logs volume, and auth secret, builds Mini-Dokploy, starts Traefik and the controller, and waits until the panel answers at [http://localhost:3000](http://localhost:3000). The last line should say `Ready: http://localhost:3000`.
 
-Create an account, then enter a public HTTPS Git URL, a Dockerfile path relative to that repository's root, and the port on which the app listens inside its container. Once this repository is public, it can serve as a demo: use its Git URL, `fixtures/hello-app/Dockerfile`, and port `3000`. Docker's build context is the repository root, so the Dockerfile can copy files from elsewhere in that repository.
+Open that URL and create an account. To deploy an app, enter its public HTTPS Git URL, its Dockerfile path relative to the repository root, and the port the app listens on **inside** its container. Custom Docker labels are optional. Once this repository is public, its Git URL with `fixtures/hello-app/Dockerfile` and port `3000` can serve as a demo. Docker uses the repository root as the build context, so the Dockerfile may copy files from elsewhere in that repository.
 
-Useful checks:
+To pick up local code changes later, run `sh scripts/up.sh` again. It rebuilds and updates the Mini-Dokploy controller without deleting its SQLite/logs volume or the user app services. The script refuses other Docker contexts to avoid modifying a remote engine.
 
-```sh
-docker service ls
-docker service logs mini-dokploy-app
-docker service logs mini-dokploy-traefik
-```
+## Useful checks
 
-For local code changes, run `npm install`, `npm run db:migrate`, and `npm run dev` with `BETTER_AUTH_SECRET` set to a random string of at least 32 characters. Stop the Swarm app service first if it already owns port 3000. Run `npm run typecheck`, `npm run test:coverage`, `npm run build`, and `npm run format:check` before submitting. `npm run format` applies Prettier to code and documentation.
+| Command                                               | What it shows                                                         |
+| ----------------------------------------------------- | --------------------------------------------------------------------- |
+| `docker context show`                                 | Should be `desktop-linux` before using `up.sh`.                       |
+| `docker info --format '{{.Swarm.LocalNodeState}}'`    | Whether the local engine is in Swarm mode.                            |
+| `docker service ls`                                   | Traefik, Mini-Dokploy, and deployed app services with replica counts. |
+| `docker service logs --tail 100 mini-dokploy-app`     | Recent controller errors and startup logs.                            |
+| `docker service logs --tail 100 mini-dokploy-traefik` | Routing and Docker API discovery errors.                              |
+| `curl -I http://localhost:3000/`                      | Whether the local panel responds over HTTP.                           |
 
-The test suite covers input validation, Docker command construction, Dockerfile path containment, and deployment state transitions. `npm run test:coverage` enforces minimum coverage for these core modules and writes an HTML report to `coverage/`. `npm run smoke:auth` verifies real sign-up, sessions, and protected tRPC calls against a running server. `npm run smoke:deployment` is a manual Docker integration test that creates a temporary service from Docker's public example repository, checks tenant isolation, WebSocket logs, routing, and redeploy, then removes the service. CI runs formatting, type checking, unit coverage, migrations, build, and the auth smoke test.
+## Developer scripts
+
+Host-side commands below require Node.js and npm. For a local development server, run `npm ci`, `npm run db:migrate`, then `npm run dev` with `BETTER_AUTH_SECRET` set to a random string of at least 32 characters. Stop the Swarm controller first if it already owns port 3000; this development path is separate from the one-command Docker setup.
+
+| Command                                      | Purpose                                                                                 |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `sh scripts/up.sh`                           | Build and start/update the local Docker Swarm stack; no host Node.js required.          |
+| `npm run dev` / `npm run start`              | Run the server locally in development / production mode.                                |
+| `npm run build` / `npm run typecheck`        | Build the Next.js app / check TypeScript.                                               |
+| `npm test` / `npm run test:coverage`         | Run unit tests / enforce coverage thresholds and write `coverage/`.                     |
+| `npm run format` / `npm run format:check`    | Apply / check Prettier formatting.                                                      |
+| `npm run db:generate` / `npm run db:migrate` | Generate a Drizzle migration / apply pending migrations.                                |
+| `npm run smoke:auth`                         | Check sign-up, sessions, and protected tRPC calls against a running server.             |
+| `npm run smoke:deployment`                   | Run the manual Docker integration test; it creates and removes a temporary app service. |
+
+Before submitting code changes, run `npm run format:check`, `npm run typecheck`, `npm run test:coverage`, and `npm run build`. Module tests live in `src/server/tests/` and `src/client/tests/`; they cover input validation, Docker commands, Dockerfile path containment, deployment state transitions, UI behavior, and the startup preflight. CI also runs migrations and the auth smoke test.
 
 ## Architecture
 
@@ -38,7 +63,7 @@ flowchart LR
   Engine --> App
 ```
 
-Next.js Pages Router serves the UI, Better Auth routes, and tRPC API. The controller uses the Docker CLI through a mounted Docker socket to build images and manage Swarm services. Traefik watches Swarm service labels and forwards HTTP to each app's declared internal port. A Docker volume persists SQLite and build logs. See the [Spanish architecture guide](docs/arquitectura.md), [learning guide](docs/guia-de-aprendizaje.md), and [glossary](docs/glosario.md) for diagrams and a walkthrough.
+Next.js Pages Router serves the UI, Better Auth routes, and tRPC API. The controller uses the Docker CLI through a mounted Docker socket to build images and manage Swarm services. Traefik watches Swarm service labels and forwards HTTP to each app's declared internal port. A Docker volume persists SQLite and build logs.
 
 The tRPC interface exposes `deployments.list`, `deployments.create`, `deployments.redeploy`, and `deployments.remove`. Every procedure requires a Better Auth session and scopes records by user ID. The WebSocket endpoint `/api/logs?id=<deployment-id>` validates the same session, request origin, and ownership before replaying recent output and streaming new lines.
 
@@ -50,7 +75,19 @@ Build work runs in the controller process and writes logs to a local volume. A c
 
 ## Troubleshooting
 
-If a deployed URL returns **404**, check `docker service logs mini-dokploy-traefik`: Traefik must be able to read the Docker API. The startup script pins Traefik v3.7.13 because the older v3.4 image cannot discover Swarm services on Docker Engine 29. A brief 404 just after a task reaches `1/1` is possible while Traefik discovers its labels. A persistent **502** means the route exists but the app does not answer on the port entered in the form; check the Dockerfile's listening port and bind address (`0.0.0.0`). The generated `sslip.io` URL is intentionally `http://`; the browser's “Not secure” indicator is expected. HTTPS would require a trusted certificate and a suitable public domain, outside this local assessment.
+| Symptom                                            | What to do                                                                                                                                                                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `up.sh` reports a missing command                  | Follow the link in its message, install the tool, reopen Terminal if needed, and rerun `sh scripts/up.sh`. Host Node.js is not required for this script.                                                                                  |
+| Docker Desktop is missing or does not become ready | Install or open [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/), finish its first-run prompts, then check `docker info` and rerun the script. The script waits up to three minutes after opening it. |
+| The Docker context is not `desktop-linux`          | Run `docker context use desktop-linux`, then rerun `sh scripts/up.sh`. The script will not target a remote engine.                                                                                                                        |
+| Port 80 or 3000 cannot be published                | On the first run, inspect listeners with `lsof -nP -iTCP:80 -sTCP:LISTEN` and `lsof -nP -iTCP:3000 -sTCP:LISTEN`; stop the conflicting program before retrying. Existing Mini-Dokploy services may already own these ports on later runs. |
+| Image download, Git clone, or build fails          | Confirm internet access and read `docker service logs --tail 100 mini-dokploy-app` or the deployment's live logs for the exact error.                                                                                                     |
+| `localhost:3000` never becomes ready               | Run `docker service ls` and `docker service logs --tail 100 mini-dokploy-app`; confirm its task reaches `1/1` and port 3000 is free of unrelated processes.                                                                               |
+| A deployed app returns **404**                     | Read `docker service logs --tail 100 mini-dokploy-traefik`. Traefik needs Docker API access to discover Swarm labels. A brief 404 after a task reaches `1/1` can occur during discovery.                                                  |
+| A deployed app returns **502 Bad Gateway**         | The route exists, but the app is not answering on the internal port entered in the form. Check its logs, listening port, and bind address (`0.0.0.0`).                                                                                    |
+| The browser says **“Not secure”**                  | Expected: the generated `sslip.io` URL uses `http://`. This local assessment does not configure HTTPS certificates.                                                                                                                       |
+
+The startup script pins Traefik v3.7.13 because the older v3.4 image cannot discover Swarm services on Docker Engine 29. HTTPS would require a trusted certificate and a suitable public domain, outside this local assessment.
 
 ## Next steps
 

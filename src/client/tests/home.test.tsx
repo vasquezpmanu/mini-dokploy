@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Home from "../../pages/index";
+import Home from "../../../pages/index";
 
 const mocks = vi.hoisted(() => ({
   useSession: vi.fn(),

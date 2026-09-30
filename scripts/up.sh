@@ -1,16 +1,41 @@
 #!/bin/sh
 set -eu
 
+fail() {
+  printf '%s\n' "$1" >&2
+  exit 1
+}
+
+if [ "$(uname -s)" != "Darwin" ]; then
+  fail "Mini-Dokploy's up.sh supports macOS with Docker Desktop only."
+fi
+if ! command -v docker >/dev/null 2>&1; then
+  fail "Docker Desktop CLI is missing. Install Docker Desktop for Mac, reopen Terminal, and retry: https://docs.docker.com/desktop/setup/install/mac-install/"
+fi
+if ! command -v curl >/dev/null 2>&1; then
+  fail "curl is missing. Install it and retry: https://curl.se/download.html"
+fi
+if ! command -v openssl >/dev/null 2>&1; then
+  fail "openssl is missing. Install it and retry: https://www.openssl-library.org/source/"
+fi
+if ! command -v open >/dev/null 2>&1; then
+  fail "The macOS open command is missing. Restore /usr/bin in PATH or check your macOS installation, then retry: https://support.apple.com/macos"
+fi
+
 cd "$(dirname "$0")/.."
 
-if [ "$(docker context show)" != "desktop-linux" ]; then
-  echo "Select the local Docker Desktop context first: docker context use desktop-linux" >&2
-  exit 1
+if ! current_context=$(docker context show 2>/dev/null); then
+  fail "Cannot read the Docker context. Check Docker Desktop installation and retry."
+fi
+if [ "$current_context" != "desktop-linux" ]; then
+  fail "Select the local Docker Desktop context first: docker context use desktop-linux"
 fi
 
 if ! docker info >/dev/null 2>&1; then
   echo "Starting Docker Desktop..."
-  open -a Docker
+  if ! open -a Docker; then
+    fail "Docker Desktop could not be opened. Install or start it manually, then retry: https://docs.docker.com/desktop/setup/install/mac-install/"
+  fi
   attempts=0
   until docker info >/dev/null 2>&1; do
     attempts=$((attempts + 1))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDeploymentInput, routingLabels } from "./validation";
+import { createDeploymentInput, routingLabels } from "../validation";
 
 const valid = {
   repoUrl: "https://github.com/example/app.git",

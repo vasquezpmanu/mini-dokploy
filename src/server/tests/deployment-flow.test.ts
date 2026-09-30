@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Deployment } from "@/src/db/schema";
-import { runDeployment, type DeploymentFlowDependencies } from "./deployment-flow";
+import { runDeployment, type DeploymentFlowDependencies } from "../deployment-flow";
 
 function fixture(overrides: Partial<Deployment> = {}) {
   const deployment = {
