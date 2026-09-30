@@ -1,0 +1,131 @@
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(440px, 0.84fr);
+  min-height: 100vh;
+}
+.auth-story {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: clamp(34px, 5vw, 76px);
+  color: #fff;
+  background:
+    radial-gradient(circle at 78% 32%, #5364bb 0, transparent 34%),
+    linear-gradient(145deg, #101b38, #1c2e61 65%, #263e7c);
+}
+.auth-story::after {
+  position: absolute;
+  right: -180px;
+  bottom: -190px;
+  width: 560px;
+  height: 560px;
+  border: 1px solid #ffffff27;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 75px #ffffff08,
+    0 0 0 150px #ffffff06;
+  content: "";
+  pointer-events: none;
+}
+.brand-on-dark {
+  position: relative;
+  z-index: 1;
+  font-size: 18px;
+}
+.auth-story-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+}
+.auth-story .eyebrow {
+  color: #a9b8ff;
+}
+.auth-story h1 {
+  max-width: 590px;
+  margin: 15px 0 18px;
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 1.04;
+  letter-spacing: -0.06em;
+}
+.auth-story-copy > p:not(.eyebrow) {
+  max-width: 480px;
+  color: #d3dcf4;
+  font-size: 17px;
+  line-height: 1.65;
+}
+.auth-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 38px;
+}
+.auth-flow span {
+  padding: 9px 12px;
+  border: 1px solid #ffffff38;
+  border-radius: 8px;
+  background: #ffffff0d;
+  color: #e7edff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.auth-story-foot {
+  position: relative;
+  z-index: 1;
+  color: #b9c6e7;
+  font-size: 12px;
+}
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: min(100%, 600px);
+  margin: auto;
+  padding: 44px clamp(28px, 6vw, 90px);
+}
+.auth-panel-heading h2 {
+  margin: 11px 0 7px;
+  font-size: 32px;
+  letter-spacing: -0.045em;
+}
+.auth-panel-heading p {
+  margin: 0 0 32px;
+  font-size: 14px;
+}
+.auth-card {
+  width: 100%;
+}
+.auth-card .primary {
+  width: 100%;
+  margin-top: 5px;
+}
+.auth-switch {
+  display: block;
+  margin: 21px auto 0;
+  font-size: 13px;
+}
+@media (max-width: 850px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .auth-story {
+    min-height: 260px;
+    padding: 30px;
+  }
+  .auth-story-copy {
+    margin-top: 35px;
+  }
+  .auth-story h1 {
+    font-size: 36px;
+  }
+  .auth-story-copy > p:not(.eyebrow),
+  .auth-flow,
+  .auth-story-foot {
+    display: none;
+  }
+  .auth-panel {
+    padding: 40px 26px 70px;
+  }
+}
